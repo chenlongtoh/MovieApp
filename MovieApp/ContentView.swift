@@ -8,14 +8,16 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject var authModel = AuthModel()
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundColor(.accentColor)
-            Text("Hello, world!")
+        Group {
+            if(authModel.authenticationState == .succeed) {
+                MovieListView()
+            } else {
+                LandingView()
+            }
         }
-        .padding()
+        .environmentObject(authModel)
     }
 }
 
