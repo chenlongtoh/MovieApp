@@ -15,7 +15,7 @@ class MovieService: MovieServiceProtocol {
     private let baseAPIURL = "http://www.omdbapi.com/"
     private let urlSession = URLSession.shared
     
-    func fetchMovies(page: Int, query: String, completion: @escaping (Result<SearchResult, MovieError>) -> ()) {
+    func fetchMovies(page: Int, query: String, completion: @escaping (Result<MovieResponse, MovieError>) -> ()) {
         guard let url = URL(string: baseAPIURL) else {
             completion(.failure(.invalidEndpoint))
             return
@@ -27,7 +27,7 @@ class MovieService: MovieServiceProtocol {
         ], completion: completion)
     }
     
-    func fetchMovieDetails(imdbID: String, completion: @escaping (Result<MovieDetails, MovieError>) -> ()) {
+    func fetchMovieDetails(imdbID: String, completion: @escaping (Result<MovieDetailsResponse, MovieError>) -> ()) {
         guard let url = URL(string: baseAPIURL) else {
             completion(.failure(.invalidEndpoint))
             return
@@ -38,7 +38,7 @@ class MovieService: MovieServiceProtocol {
         ], completion: completion)
     }
     
-    func searchMovie(page: Int, query: String, completion: @escaping (Result<SearchResult, MovieError>) -> ()) {
+    func searchMovie(page: Int, query: String, completion: @escaping (Result<MovieResponse, MovieError>) -> ()) {
         guard let url = URL(string: baseAPIURL) else {
             completion(.failure(.invalidEndpoint))
             return
@@ -50,7 +50,7 @@ class MovieService: MovieServiceProtocol {
         ], completion: completion)
     }
     
-    private func loadURLAndDecode<D: Decodable>(url: URL, params: [String: String]? = nil, completion: @escaping (Result<D, MovieError>) -> ()) {
+    private func loadURLAndDecode<D>(url: URL, params: [String: String]? = nil, completion: @escaping (Result<D, MovieError>) -> ()) where D:Decodable, D:ApiResponse {
         guard var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             completion(.failure(.invalidEndpoint))
             return
@@ -64,7 +64,7 @@ class MovieService: MovieServiceProtocol {
         }
         
         urlComponents.queryItems = queryItems
-        
+        print("urlComponents \(urlComponents.description)")
         guard let finalURL = urlComponents.url else {
             completion(.failure(.invalidEndpoint))
             return
@@ -90,14 +90,26 @@ class MovieService: MovieServiceProtocol {
             
             do {
                 let decodedResponse = try JSONDecoder().decode(D.self, from: data)
-                self.executeCompletionHandlerInMainThread(with: .success(decodedResponse), completion: completion)
+                if(decodedResponse.hasValidResponse()) {
+                    self.executeCompletionHandlerInMainThread(with: .success(decodedResponse), completion: completion)
+                } else {
+                    guard let error = decodedResponse.error, !decodedResponse.status else {
+                        self.executeCompletionHandlerInMainThread(with: .failure(.invalidResponse), completion: completion)
+                        return
+                    }
+                    if (error == "Too many results.") {
+                        self.executeCompletionHandlerInMainThread(with: .failure(.tooManyResult), completion: completion)
+                    }else {
+                        self.executeCompletionHandlerInMainThread(with: .failure(.apiError), completion: completion)
+                    }
+                }
             } catch {
                 self.executeCompletionHandlerInMainThread(with: .failure(.serializationError), completion: completion)
             }
         }.resume()
     }
     
-    private func executeCompletionHandlerInMainThread<D: Decodable>(with result: Result<D, MovieError>, completion: @escaping (Result<D, MovieError>) -> ()) {
+    private func executeCompletionHandlerInMainThread<D>(with result: Result<D, MovieError>, completion: @escaping (Result<D, MovieError>) -> ()) where D:Decodable, D:ApiResponse {
         DispatchQueue.main.async {
             completion(result)
         }

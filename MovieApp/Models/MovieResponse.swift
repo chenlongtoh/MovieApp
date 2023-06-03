@@ -8,18 +8,31 @@
 import Foundation
 import UIKit
 
-struct SearchResult: Decodable {
-    let movies: [Movie]
+struct MovieResponse: Decodable, ApiResponse {
+    
+    let status: Bool
+    let error: String?
+    let movies: [Movie]?
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: SearchResultCodingKey.self)
         
-        movies = try container.decode([Movie].self, forKey: .search)
+        let statusStr = try container.decode(String.self, forKey: .status)
+        status = statusStr == "True"
+        
+        movies = try container.decodeIfPresent([Movie].self, forKey: .search)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+    }
+    
+    func hasValidResponse() -> Bool {
+        status && movies != nil
     }
 }
 
 enum SearchResultCodingKey: String, CodingKey {
+    case status = "Response"
     case search = "Search"
+    case error = "Error"
 }
 
 class Movie: Decodable, Hashable, ObservableObject {
@@ -29,6 +42,8 @@ class Movie: Decodable, Hashable, ObservableObject {
     let type: String
     let rawPosterUrl: String
     
+    @Published var poster: UIImage?
+    
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: MovieCodingKey.self)
         
@@ -37,6 +52,8 @@ class Movie: Decodable, Hashable, ObservableObject {
         year = try container.decode(String.self, forKey: .year)
         type = try container.decode(String.self, forKey: .type)
         rawPosterUrl = try container.decode(String.self, forKey: .rawPosterUrl)
+        
+        _fetchImage(rawUrl: rawPosterUrl)
     }
     
     required init(imdbID: String, title: String, year: String, type: String, rawPosterUrl: String) {
@@ -45,6 +62,16 @@ class Movie: Decodable, Hashable, ObservableObject {
         self.year = year
         self.type = type
         self.rawPosterUrl = rawPosterUrl
+        
+        _fetchImage(rawUrl: rawPosterUrl)
+    }
+    
+    private func _fetchImage(rawUrl: String) {
+        guard let url = URL(string: rawUrl) else { return }
+        ImageLoader.shared.loadImage(with: url) { image in
+            self.poster = image
+        }
+        
     }
     
     static func == (lhs: Movie, rhs: Movie) -> Bool {

@@ -8,9 +8,9 @@
 import Foundation
 
 protocol MovieServiceProtocol {
-    func fetchMovies(page: Int, query: String, completion: @escaping (Result<SearchResult, MovieError>) -> ())
-    func fetchMovieDetails(imdbID: String, completion: @escaping (Result<MovieDetails, MovieError>) -> ())
-    func searchMovie(page: Int, query: String, completion: @escaping (Result<SearchResult, MovieError>) -> ())
+    func fetchMovies(page: Int, query: String, completion: @escaping (Result<MovieResponse, MovieError>) -> ())
+    func fetchMovieDetails(imdbID: String, completion: @escaping (Result<MovieDetailsResponse, MovieError>) -> ())
+    func searchMovie(page: Int, query: String, completion: @escaping (Result<MovieResponse, MovieError>) -> ())
 }
 
 enum MovieError: Error, CustomNSError {

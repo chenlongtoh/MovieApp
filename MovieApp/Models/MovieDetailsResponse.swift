@@ -6,8 +6,32 @@
 //
 
 import Foundation
+import SwiftUI
 
-struct MovieDetails: Decodable {
+struct MovieDetailsResponse: Decodable, ApiResponse {
+    let status: Bool
+    let error: String?
+    let movieDetails: MovieDetails?
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: MovieDetailsResponseCodingKey.self)
+        let statusStr = try container.decode(String.self, forKey: .status)
+        status = statusStr == "True"
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+        movieDetails = try MovieDetails(from: decoder)
+    }
+    
+    func hasValidResponse() -> Bool {
+        status && movieDetails != nil
+    }
+}
+
+enum MovieDetailsResponseCodingKey: String, CodingKey{
+    case status = "Response"
+    case error = "Error"
+}
+
+class MovieDetails: Decodable, Hashable, ObservableObject{
     let title: String
     let year: String
     let rated: String
@@ -21,10 +45,10 @@ struct MovieDetails: Decodable {
     let language: String
     let country: String
     let awards: String
-    let poster: String
+    let rawPosterUrl: String
     let ratings: [Rating]
     let metascore: String
-    let imdbRating: String
+    let imdbRating: Double?
     let imdbVotes: String
     let imdbID: String
     let type: String
@@ -32,11 +56,10 @@ struct MovieDetails: Decodable {
     let boxOffice: String
     let production: String
     let website: String
-    let response: String
     
+    @Published var poster: UIImage?
     
-    
-    init(from decoder: Decoder) throws {
+    required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: MovieDetailsCodingKey.self)
         
         title = try container.decode(String.self, forKey: .title)
@@ -52,10 +75,9 @@ struct MovieDetails: Decodable {
         language = try container.decode(String.self, forKey: .language)
         country = try container.decode(String.self, forKey: .country)
         awards = try container.decode(String.self, forKey: .awards)
-        poster = try container.decode(String.self, forKey: .poster)
+        rawPosterUrl = try container.decode(String.self, forKey: .poster)
         ratings = try container.decode([Rating].self, forKey: .ratings)
         metascore = try container.decode(String.self, forKey: .metascore)
-        imdbRating = try container.decode(String.self, forKey: .imdbRating)
         imdbVotes = try container.decode(String.self, forKey: .imdbVotes)
         imdbID = try container.decode(String.self, forKey: .imdbID)
         type = try container.decode(String.self, forKey: .type)
@@ -63,7 +85,27 @@ struct MovieDetails: Decodable {
         boxOffice = try container.decode(String.self, forKey: .boxOffice)
         production = try container.decode(String.self, forKey: .production)
         website = try container.decode(String.self, forKey: .website)
-        response = try container.decode(String.self, forKey: .response)
+        
+        let imdbRatingStr = try container.decode(String.self, forKey: .imdbRating)
+        imdbRating = Double(imdbRatingStr)
+        
+        _fetchImage(rawUrl: rawPosterUrl)
+    }
+    
+    private func _fetchImage(rawUrl: String) {
+        guard let url = URL(string: rawUrl) else { return }
+        ImageLoader.shared.loadImage(with: url) { image in
+            self.poster = image
+        }
+        
+    }
+    
+    static func == (lhs: MovieDetails, rhs: MovieDetails) -> Bool {
+        lhs.imdbID == rhs.imdbID
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(imdbID)
     }
 }
 
@@ -92,10 +134,9 @@ enum MovieDetailsCodingKey: String, CodingKey {
     case boxOffice = "BoxOffice"
     case production = "Production"
     case website = "Website"
-    case response = "Response"
 }
 
-struct Rating: Decodable {
+struct Rating: Decodable, Hashable {
     let source: String
     let value: String
     
@@ -104,6 +145,15 @@ struct Rating: Decodable {
         
         source = try container.decode(String.self, forKey: .source)
         value = try container.decode(String.self, forKey: .value)
+    }
+    
+    init(source: String, value: String) {
+        self.source = source
+        self.value = value
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(source)
     }
 }
 
