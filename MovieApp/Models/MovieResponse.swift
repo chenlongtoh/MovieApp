@@ -38,8 +38,6 @@ enum SearchResultCodingKey: String, CodingKey {
 class Movie: Decodable, Hashable, ObservableObject {
     let imdbID: String
     let title: String
-    let year: String
-    let type: String
     let rawPosterUrl: String
     
     @Published var poster: UIImage?
@@ -49,23 +47,26 @@ class Movie: Decodable, Hashable, ObservableObject {
         
         imdbID = try container.decode(String.self, forKey: .imdbID)
         title = try container.decode(String.self, forKey: .title)
-        year = try container.decode(String.self, forKey: .year)
-        type = try container.decode(String.self, forKey: .type)
         rawPosterUrl = try container.decode(String.self, forKey: .rawPosterUrl)
         
         _fetchImage(rawUrl: rawPosterUrl)
     }
     
-    required init(imdbID: String, title: String, year: String, type: String, rawPosterUrl: String) {
+    required init(imdbID: String, title: String, rawPosterUrl: String) {
         self.imdbID = imdbID
         self.title = title
-        self.year = year
-        self.type = type
         self.rawPosterUrl = rawPosterUrl
         
         _fetchImage(rawUrl: rawPosterUrl)
     }
     
+    required init(imdbID: String, title: String?, poster: UIImage?) {
+        self.imdbID = imdbID
+        self.title = title ?? "Unknow title"
+        self.poster = poster
+        self.rawPosterUrl = ""
+    }
+
     private func _fetchImage(rawUrl: String) {
         guard let url = URL(string: rawUrl) else { return }
         ImageLoader.shared.loadImage(with: url) { image in

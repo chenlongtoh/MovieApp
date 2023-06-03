@@ -33,29 +33,13 @@ enum MovieDetailsResponseCodingKey: String, CodingKey{
 
 class MovieDetails: Decodable, Hashable, ObservableObject{
     let title: String
-    let year: String
-    let rated: String
-    let released: String
-    let runtime: String
     let genre: String
-    let director: String
-    let writer: String
-    let actors: String
     let plot: String
-    let language: String
-    let country: String
-    let awards: String
     let rawPosterUrl: String
     let ratings: [Rating]
-    let metascore: String
     let imdbRating: Double?
     let imdbVotes: String
     let imdbID: String
-    let type: String
-    let dVD: String
-    let boxOffice: String
-    let production: String
-    let website: String
     
     @Published var poster: UIImage?
     
@@ -63,33 +47,29 @@ class MovieDetails: Decodable, Hashable, ObservableObject{
         let container = try decoder.container(keyedBy: MovieDetailsCodingKey.self)
         
         title = try container.decode(String.self, forKey: .title)
-        year = try container.decode(String.self, forKey: .year)
-        rated = try container.decode(String.self, forKey: .rated)
-        released = try container.decode(String.self, forKey: .released)
-        runtime = try container.decode(String.self, forKey: .runtime)
         genre = try container.decode(String.self, forKey: .genre)
-        director = try container.decode(String.self, forKey: .director)
-        writer = try container.decode(String.self, forKey: .writer)
-        actors = try container.decode(String.self, forKey: .actors)
         plot = try container.decode(String.self, forKey: .plot)
-        language = try container.decode(String.self, forKey: .language)
-        country = try container.decode(String.self, forKey: .country)
-        awards = try container.decode(String.self, forKey: .awards)
         rawPosterUrl = try container.decode(String.self, forKey: .poster)
         ratings = try container.decode([Rating].self, forKey: .ratings)
-        metascore = try container.decode(String.self, forKey: .metascore)
         imdbVotes = try container.decode(String.self, forKey: .imdbVotes)
         imdbID = try container.decode(String.self, forKey: .imdbID)
-        type = try container.decode(String.self, forKey: .type)
-        dVD = try container.decode(String.self, forKey: .dVD)
-        boxOffice = try container.decode(String.self, forKey: .boxOffice)
-        production = try container.decode(String.self, forKey: .production)
-        website = try container.decode(String.self, forKey: .website)
         
         let imdbRatingStr = try container.decode(String.self, forKey: .imdbRating)
         imdbRating = Double(imdbRatingStr)
         
         _fetchImage(rawUrl: rawPosterUrl)
+    }
+    
+    required init(imdbID: String, title: String?, genre: String?, imdbRating: Double?, imdbVotes: String?, plot: String?, poster: UIImage?, ratings: [Rating]?) throws {
+        self.imdbID = imdbID
+        self.title = title ?? "Unknown Title"
+        self.genre = genre ?? "Unknown Genre"
+        self.imdbRating = imdbRating ?? 0
+        self.imdbVotes = imdbVotes ?? "N/A"
+        self.plot = plot ?? "N/A"
+        self.poster = poster
+        self.ratings = ratings ?? []
+        self.rawPosterUrl = ""
     }
     
     private func _fetchImage(rawUrl: String) {
@@ -136,7 +116,7 @@ enum MovieDetailsCodingKey: String, CodingKey {
     case website = "Website"
 }
 
-struct Rating: Decodable, Hashable {
+struct Rating: Decodable, Hashable, Encodable {
     let source: String
     let value: String
     
@@ -154,6 +134,12 @@ struct Rating: Decodable, Hashable {
     
     func hash(into hasher: inout Hasher) {
         hasher.combine(source)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: RatingCodingKey.self)
+        try container.encode(source, forKey: .source)
+        try container.encode(value, forKey: .value)
     }
 }
 

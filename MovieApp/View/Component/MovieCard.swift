@@ -52,8 +52,6 @@ struct MovieCard_Previews: PreviewProvider {
         let movie = Movie(
             imdbID: "tt0033317",
             title: "Adventures of Captain Marvel",
-            year: "1941",
-            type: "movie",
             rawPosterUrl: "https://m.media-amazon.com/images/M/MV5BNjg0NTk3NjUyNF5BMl5BanBnXkFtZTgwNDQ5MjM1MjE@._V1_SX300.jpg"
         );
         

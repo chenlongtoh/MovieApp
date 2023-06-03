@@ -64,7 +64,7 @@ class MovieService: MovieServiceProtocol {
         }
         
         urlComponents.queryItems = queryItems
-        print("urlComponents \(urlComponents.description)")
+        
         guard let finalURL = urlComponents.url else {
             completion(.failure(.invalidEndpoint))
             return
